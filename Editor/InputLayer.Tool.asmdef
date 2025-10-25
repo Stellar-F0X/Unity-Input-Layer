@@ -1,0 +1,18 @@
+{
+    "name": "InputLayer.Tool",
+    "rootNamespace": "InputLayer.Tool",
+    "references": [
+        "GUID:d2bd5b456aea64d499e43214a94a5fa6"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
