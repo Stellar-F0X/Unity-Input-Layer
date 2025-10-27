@@ -67,13 +67,10 @@ namespace InputLayer.Runtime
             int foundIndex = Array.IndexOf(nameList, layerName.layerName);
             foundIndex = Mathf.Max(foundIndex, 0);
 
-
             EditorGUI.BeginChangeCheck();
             foundIndex = EditorGUI.Popup(position, label.text, foundIndex, nameList);
-            bool changed = EditorGUI.EndChangeCheck();
-                
-            
-            if (changed)
+
+            if (EditorGUI.EndChangeCheck())
             {
                 property.boxedValue = new InputLayerName(maps[foundIndex].name, maps[foundIndex].id.ToString());
                 property.serializedObject.ApplyModifiedProperties();

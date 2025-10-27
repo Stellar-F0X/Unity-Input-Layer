@@ -27,7 +27,7 @@ namespace InputLayer.Runtime
 
         private void Awake()
         {
-            _focusedInputLayer = Singleton<InputManager>.Instance.CreateInputLayer(_activeLayer.name);
+            _focusedInputLayer = Singleton<InputManager>.Instance.CreateInputLayer(_activeLayer.id);
         }
 
 

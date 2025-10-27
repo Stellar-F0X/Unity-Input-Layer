@@ -62,7 +62,7 @@ namespace InputLayer.Runtime
                 _rootLayer = new InputLayerName(map.name, map.id.ToString());
             }
 
-            this.PushActionMap(_rootLayer.layerName);
+            this.PushInputLayer(_rootLayer);
         }
 
 
@@ -83,35 +83,19 @@ namespace InputLayer.Runtime
 
 
 
-        public InputLayer CreateInputLayer([NotNull] in string actionMapName)
+        internal InputLayer CreateInputLayer(in Guid id)
         {
-            Assert.IsFalse(string.IsNullOrEmpty(actionMapName), "actionMapName은 Null일 수 없습니다.");
+            Assert.IsTrue(Guid.Empty != id, $"{nameof(id)}은 비어있을 수 없습니다.");
 
-            InputActionMap actionMap = _inputMapsAsset.FindActionMap(actionMapName);
-            Assert.IsNotNull(actionMap, $"{nameof(InputManager)}: 액션 맵 {actionMapName}을 찾을 수 없습니다.");
+            InputActionMap actionMap = _inputMapsAsset.FindActionMap(id);
+            Assert.IsNotNull(actionMap, $"{nameof(InputManager)}: 액션 맵 {id}을 찾을 수 없습니다.");
 
-            return new InputLayer(_inputMapsAsset.FindActionMap(actionMapName));
+            return new InputLayer(actionMap);
         }
 
 
 
-        public bool PushActionMap(string actionMapName, out InputLayer layer)
-        {
-            if (this.PushActionMap(actionMapName))
-            {
-                layer = PeekInputLayer;
-                return true;
-            }
-            else
-            {
-                layer = default;
-                return false;
-            }
-        }
-
-
-
-        public bool PushActionMap([NotNull] in string actionMapName)
+        internal bool PushInputLayer(in InputLayerName layerName)
         {
             if (LayerStackBlock)
             {
@@ -119,11 +103,12 @@ namespace InputLayer.Runtime
                 return false;
             }
 
-            InputLayer layer = this.CreateInputLayer(actionMapName);
+            Guid target = Guid.Parse(layerName.layerGuid);
+            InputLayer layer = this.CreateInputLayer(target);
 
             _inputActionLayer.Push(layer);
 
-            if (this.SwitchActionMap(actionMapName))
+            if (this.SwitchActionMap(target))
             {
                 onPushedInputLayer?.Invoke(layer);
             }
@@ -133,7 +118,29 @@ namespace InputLayer.Runtime
 
 
 
-        public void PopActionMap()
+        public bool PushInputLayer(in string inputActionMapName)
+        {
+            if (LayerStackBlock)
+            {
+                Debug.LogWarning($"{nameof(InputManager)}: 레이어 변경이 막혀있습니다.");
+                return false;
+            }
+
+            InputActionMap map = InputSystem.actions.FindActionMap(inputActionMapName);
+            Assert.IsNotNull(map, $"{nameof(InputManager)}: 액션 맵 {inputActionMapName}을 찾을 수 없습니다.");
+
+            if (PeekInputLayer.actionMapId == map.id)
+            {
+                Debug.LogWarning($"{nameof(InputManager)}: 똑같은 레이어를 연속해서 추가할 수 없습니다.");
+                return false;
+            }
+
+            return this.PushInputLayer(new InputLayerName(map.name, map.id.ToString()));
+        }
+
+
+
+        public void PopInputLayer()
         {
             if (LayerStackBlock)
             {
@@ -149,7 +156,7 @@ namespace InputLayer.Runtime
 
             _inputActionLayer.Pop();
 
-            if (this.SwitchActionMap(PeekInputLayer.mapName))
+            if (this.SwitchActionMap(PeekInputLayer.actionMapId))
             {
                 onPoppedInputLayer?.Invoke(PeekInputLayer);
             }
@@ -157,27 +164,21 @@ namespace InputLayer.Runtime
 
 
 
-        private bool SwitchActionMap([NotNull] in string actionMapName)
+        private bool SwitchActionMap(in Guid id)
         {
-            if (_currentInputMap is not null)
-            {
-                _currentInputMap.Disable();
-            }
+            _currentInputMap?.Disable();
 
-            _currentInputMap = _inputMapsAsset.FindActionMap(actionMapName);
+            _currentInputMap = _inputMapsAsset.FindActionMap(id);
             Assert.IsNotNull(_currentInputMap, "입력 액션 맵이 없습니다.");
             _currentInputMap.Enable();
 
-            if (string.CompareOrdinal(PeekInputLayer.mapName, actionMapName) != 0)
+            if (PeekInputLayer.actionMapId == id)
             {
-                Debug.LogError("입력 맵 변경에 실패했습니다.");
-                return false;
-            }
-            else
-            {
-                Debug.Log("성공적으로 입력 맵을 변경했습니다.");
                 return true;
             }
+
+            Debug.LogError("입력 맵 변경에 실패했습니다.");
+            return false;
         }
     }
 
@@ -200,29 +201,29 @@ namespace InputLayer.Runtime
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
-            
+
             using (new EditorGUI.DisabledScope(true))
             {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("m_Script"));
             }
 
-            EditorGUI.BeginChangeCheck();
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("_rootLayer"));
-            
-            if (EditorGUI.EndChangeCheck())
+            using (new EditorGUI.DisabledScope(Application.isPlaying))
             {
-                serializedObject.ApplyModifiedProperties();
-            }
+                EditorGUI.BeginChangeCheck();
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("_rootLayer"));
 
-            if (Application.isPlaying == false)
-            {
-                return;
-            }
+                if (EditorGUI.EndChangeCheck())
+                {
+                    serializedObject.ApplyModifiedProperties();
+                }
 
-            _options[0] = InputManager.PeekInputLayer.mapName;
+                if (Application.isPlaying == false)
+                {
+                    return;
+                }
 
-            using (new EditorGUI.DisabledScope(true))
-            {
+                _options[0] = InputManager.PeekInputLayer.mapName;
+
                 EditorGUILayout.Popup("Current Layer", 0, _options);
             }
         }

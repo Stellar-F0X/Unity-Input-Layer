@@ -36,6 +36,11 @@ namespace InputLayer.Runtime
         {
             get { return _isRoot; }
         }
+        
+        internal Guid actionMapId
+        {
+            get { return _inputActionMap.id; }
+        }
 
 
         public InputAction GetAction(string actionName)
