@@ -22,6 +22,7 @@ Unity의 Input System을 레이어 기반으로 관리할 수 있는 확장 시�
 1. Unity 에디터에서 `Window > Package Manager` 열기
 2. `+` 버튼 클릭 → `Add package from git URL...` 선택
 3. 다음 URL 입력:
+
 ```
 https://github.com/Stellar-F0X/Unity-Input-Layer.git
 ```
@@ -48,8 +49,7 @@ Project Settings > Input System Package에서 Input-wide로 Input Action Asset�
 
 씬에 InputManager가 자동으로 생성되거나, 직접 GameObject에 추가합니다.
 
-추가된 InputManager 컴포넌트의 Inspector에서 Root로 삼을 레이어를 설정합니다. 
-
+추가된 InputManager 컴포넌트의 Inspector에서 Root로 삼을 레이어를 설정합니다.
 
 ```csharp
 [SerializeField] private InputLayerName _rootLayer; // "Player" 등
@@ -83,7 +83,6 @@ public class GameManager : MonoBehaviour
 
 입력 레이어 스택을 관리하는 싱글톤 매니저입니다.
 
-
 **일반 메서드들**
 
 ```csharp
@@ -105,9 +104,20 @@ InputManager.LayerStackBlock = true; // 레이어 스택 변경 차단
 ```
 
 **이벤트**
+
+InputLayerController 객체를 이용해서 레이어 추가 및 제거 이벤트를 등록할 수 있습니다.
+
 ```csharp
-Singleton<InputManager>.Instance.onPushedInputLayer += OnLayerPushed;
-Singleton<InputManager>.Instance.onPoppedInputLayer += OnLayerPopped;
+public class SomeClass : MonoBehaviour 
+{
+    private InputLayerController _controller;
+
+    private void RegisterEvents()
+    {
+        _controller.onPushedInputLayer += OnLayerPushed
+        _controller.onPoppedInputLayer += OnLayerPopped;
+    }
+}
 ```
 
 ### InputReceiver
@@ -115,29 +125,18 @@ Singleton<InputManager>.Instance.onPoppedInputLayer += OnLayerPopped;
 특정 레이어의 입력을 받는 컴포넌트입니다.
 
 ```csharp
-using InputLayer.Runtime;
-using UnityEngine;
-using UnityEngine.InputSystem;
-
 public class PlayerController : MonoBehaviour
 {
-    private InputReceiver _inputReceiver;
-
-    private void Awake()
-    {
-        _inputReceiver = GetComponent<InputReceiver>();
-    }
+    public InputReceiver inputReceiver;
 
     private void Update()
     {
-        // 버튼 입력
-        if (_inputReceiver.ReadButtonDown("Jump"))
+        if (inputReceiver.ReadButtonDown("Jump"))
         {
             Jump();
         }
-
-        // 벡터 입력
-        if (_inputReceiver.ReadInput("Move", out Vector2 movement))
+        
+        if (inputReceiver.ReadInput("Move", out Vector2 movement)) 
         {
             Move(movement);
         }
@@ -146,6 +145,7 @@ public class PlayerController : MonoBehaviour
 ```
 
 **콜백 등록**
+
 ```csharp
 private void Start()
 {
@@ -200,14 +200,16 @@ InputCallback.Started | InputCallback.Performed
 ```csharp
 public class PauseMenu : MonoBehaviour
 {
+    public InputLayerController controller;
+    
     private void OnEnable()
     {
-        Singleton<InputManager>.Instance.PushInputLayer("UI"); // 메뉴가 열리면 UI 레이어 활성화
+        controller.PushInputLayer("UI"); // 메뉴가 열리면 UI 레이어 활성화
     }
 
     private void OnDisable()
     {   
-        Singleton<InputManager>.Instancee.PopInputLayer(); // 메뉴가 닫히면 이전 레이어로 복귀
+        controller.PopInputLayer(); // 메뉴가 닫히면 이전 레이어로 복귀
     }
 }
 ```
@@ -217,20 +219,21 @@ public class PauseMenu : MonoBehaviour
 ```csharp
 public class DialogueSystem : MonoBehaviour
 {
-    private InputReceiver _dialogueInput;
+    public InputReceiver dialogueInput;
+    public InputLayerController controller;
 
     private void StartDialogue()
     {
-        Singleton<InputManager>.Instance.PushInputLayer("Dialogue"); // 대화 중에는 Dialogue 레이어만 활성화
+        controller.PushInputLayer("Dialogue"); // 대화 시작시, Dialogue 레이어만 활성화
         
-        _dialogueInput.RegisterInputAction("Submit", InputCallback.Performed, OnDialogueAdvance);
+        dialogueInput.RegisterInputAction("Submit", InputCallback.Performed, OnDialogueAdvance);
     }
 
     private void EndDialogue()
     {
-        _dialogueInput.UnregisterInputAction("Submit", InputCallback.Performed);
-
-        Singleton<InputManager>.Instance.PopInputLayer();
+        dialogueInput.UnregisterInputAction("Submit", InputCallback.Performed);
+        
+        controller.PopInputLayer(); // 대화 종료시, Dialogue 레이어를 제거하고 기존 레이어 활성화.
     }
 
     private void OnDialogueAdvance(InputAction.CallbackContext ctx)
@@ -245,21 +248,23 @@ public class DialogueSystem : MonoBehaviour
 ```csharp
 public class InventoryUI : MonoBehaviour
 {
+    public InputLayerController controller;
+    
     private void Open()
     {
-        Singleton<InputManager>.Instance.PushInputLayer("Inventory"); // 플레이어 이동 입력이 자동으로 차단됨
+        controller.PushInputLayer("Inventory"); // 플레이어 이동 입력이 자동으로 차단됨
     }
 
     private void Close()
     {
-        Singleton<InputManager>.Instance.PopInputLayer(); // 플레이어 이동 입력 재개
+        controller.PopInputLayer(); // 플레이어 이동 입력 재개
     }
 }
 ```
 
 ## 디버그 모드
 
-InputManager의 Inspector에서 Debug 옵션을 활성화하면 게임 화면 좌측 상단에 현재 레이어 스택이 표시됩니다.
+InputManager의 인스펙터에서 Debug 옵션을 활성화하면 게임 화면 좌측 상단에 현재 레이어 스택이 표시됩니다.
 
 - **노란색**: Root 레이어
 - **초록색**: 현재 활성 레이어 (최상단)
@@ -281,10 +286,9 @@ InputManager의 Inspector에서 Debug 옵션을 활성화하면 게임 화면 �
 
 ### 입력 우선순위
 
-1. `InputManager.InputBlock`이 true면 모든 입력 차단
+1. `Singleton<InputManager>.Instance.inputBlock`이 true면 모든 입력 차단
 2. 최상단 레이어가 아닌 InputReceiver는 입력 무시
 3. 최상단 레이어의 InputReceiver만 입력 처리
-
 
 ## 라이선스
 

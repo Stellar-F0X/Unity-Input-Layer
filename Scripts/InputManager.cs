@@ -14,8 +14,8 @@ namespace InputLayer.Runtime
     {
         private readonly Stack<InputLayer> _inputActionLayer = new Stack<InputLayer>();
 
-        public event Action<InputLayer> onPushedInputLayer;
-        public event Action<InputLayer> onPoppedInputLayer;
+        internal event Action<InputLayer> onPushedInputLayer;
+        internal event Action<InputLayer> onPoppedInputLayer;
 
         
         [SerializeField]
@@ -42,7 +42,7 @@ namespace InputLayer.Runtime
 
         public bool inputBlock
         {
-            get { return _currentInputMap.enabled; }
+            get { return !_currentInputMap.enabled; }
         }
 
 
@@ -112,7 +112,7 @@ namespace InputLayer.Runtime
 
 
 
-        public bool PushInputLayer(in string inputActionMapName)
+        internal bool PushInputLayer(in string inputActionMapName)
         {
             if (layerStackBlock)
             {
@@ -134,7 +134,7 @@ namespace InputLayer.Runtime
 
 
 
-        public void PopInputLayer()
+        internal void PopInputLayer()
         {
             if (layerStackBlock)
             {
@@ -158,7 +158,7 @@ namespace InputLayer.Runtime
 
 
 
-        public void PopAllInputLayersExpectRoot()
+        internal void PopAllInputLayersExpectRoot()
         {
             if (layerStackBlock)
             {
