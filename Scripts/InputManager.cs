@@ -17,7 +17,7 @@ namespace InputLayer.Runtime
         internal event Action<InputLayer> onPushedInputLayer;
         internal event Action<InputLayer> onPoppedInputLayer;
 
-        
+
         [SerializeField]
         private bool _debug;
 
@@ -31,7 +31,12 @@ namespace InputLayer.Runtime
 
         public InputLayer peekInputLayer
         {
-            get { return _instance._inputActionLayer.Peek(); }
+            get { return _instance._inputActionLayer?.Peek() ?? default; }
+        }
+
+        public bool inputBlock
+        {
+            get { return (_currentInputMap is null) ? false : !_currentInputMap.enabled; }
         }
 
         public bool layerStackBlock
@@ -40,25 +45,22 @@ namespace InputLayer.Runtime
             set;
         }
 
-        public bool inputBlock
-        {
-            get { return !_currentInputMap.enabled; }
-        }
 
 
         protected override void OnMonoAwake()
         {
             this._inputMapsAsset = InputSystem.actions;
-
             bool errorFlag = _inputMapsAsset?.actionMaps.Count > 0;
             Assert.IsTrue(errorFlag, "No Action Maps defined in actions");
 
+            
             if (string.IsNullOrEmpty(_rootLayer.layerGuid))
             {
                 InputActionMap map = _inputMapsAsset.actionMaps[0];
                 _rootLayer = new InputLayerName(map.name, map.id.ToString());
             }
 
+            
             this.PushInputLayer(_rootLayer, isRoot: true);
         }
 
@@ -80,16 +82,21 @@ namespace InputLayer.Runtime
 
         internal InputLayer CreateInputLayer(in Guid id, bool isRoot = false)
         {
-            Assert.IsTrue(Guid.Empty != id, $"{nameof(InputManager)}: {nameof(id)}은 비어있을 수 없습니다.");
             InputActionMap actionMap = _inputMapsAsset.FindActionMap(id);
-            Assert.IsNotNull(actionMap, $"{nameof(InputManager)}: 액션 맵 {id}을 찾을 수 없습니다.");
-
-            return new InputLayer(actionMap, isRoot);
+            
+            if (actionMap is null)
+            {
+                throw new NullReferenceException($"{nameof(InputManager)}: 입력 액션 맵이 없습니다.");
+            }
+            else
+            {
+                return new InputLayer(actionMap, isRoot);
+            }
         }
 
 
 
-        internal bool PushInputLayer(in InputLayerName layerName, bool isRoot = false)
+        private bool PushInputLayer(in InputLayerName layerName, bool isRoot = false)
         {
             if (layerStackBlock)
             {
@@ -98,15 +105,11 @@ namespace InputLayer.Runtime
             }
 
             Guid target = Guid.Parse(layerName.layerGuid);
+            this.SwitchActionMap(target);
+
             InputLayer layer = this.CreateInputLayer(target, isRoot);
-
             _inputActionLayer.Push(layer);
-
-            if (this.SwitchActionMap(target))
-            {
-                onPushedInputLayer?.Invoke(layer);
-            }
-
+            onPushedInputLayer?.Invoke(layer);
             return true;
         }
 
@@ -121,7 +124,11 @@ namespace InputLayer.Runtime
             }
 
             InputActionMap map = InputSystem.actions.FindActionMap(inputActionMapName);
-            Assert.IsNotNull(map, $"{nameof(InputManager)}: {inputActionMapName}이 없습니다.");
+
+            if (map is null)
+            {
+                throw new NullReferenceException($"{nameof(InputManager)}: {inputActionMapName}이 없습니다.");
+            }
 
             if (_inputActionLayer.Any(layer => layer.actionMapId == map.id))
             {
@@ -136,13 +143,13 @@ namespace InputLayer.Runtime
 
         internal void PopInputLayer()
         {
-            if (layerStackBlock)
+            if (this.layerStackBlock)
             {
                 Debug.LogWarning($"{nameof(InputManager)}: 레이어 변경이 막혀있습니다.");
                 return;
             }
 
-            if (peekInputLayer.isRoot)
+            if (this.peekInputLayer.isRoot)
             {
                 Debug.LogWarning($"{nameof(InputManager)}: 최상위 입력 레이어는 제거할 수 없습니다.");
                 return;
@@ -174,47 +181,31 @@ namespace InputLayer.Runtime
 
         private bool TryPopInputLayer()
         {
-            if (peekInputLayer.isRoot)
+            if (this.peekInputLayer.isRoot)
             {
                 return false;
             }
 
-            if (_inputActionLayer.TryPop(out _) == false)
-            {
-                return false;
-            }
+            _inputActionLayer.Pop();
 
-            if (this.SwitchActionMap(peekInputLayer.actionMapId))
-            {
-                onPoppedInputLayer?.Invoke(peekInputLayer);
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            this.SwitchActionMap(peekInputLayer.actionMapId);
+            this.onPoppedInputLayer?.Invoke(peekInputLayer);
+            return true;
         }
 
 
 
-        private bool SwitchActionMap(in Guid id)
+        private void SwitchActionMap(in Guid id)
         {
             _currentInputMap?.Disable();
-            
             _currentInputMap = _inputMapsAsset.FindActionMap(id);
-            Assert.IsNotNull(_currentInputMap, $"{nameof(InputManager)}: 입력 액션 맵이 없습니다.");
+
+            if (_currentInputMap is null)
+            {
+                throw new NullReferenceException($"{nameof(InputManager)}: 입력 액션 맵이 없습니다.");
+            }
 
             _currentInputMap.Enable();
-
-            if (peekInputLayer.actionMapId == id)
-            {
-                return true;
-            }
-            else
-            {
-                Debug.LogError($"{nameof(InputManager)}: 입력 맵 변경에 실패했습니다.");
-                return false;
-            }
         }
 
 
