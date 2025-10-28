@@ -21,16 +21,16 @@ namespace InputLayer.Runtime
 
         [SerializeField]
         internal string layerName;
-        
+
         [SerializeField]
         internal string layerGuid;
 
-        
+
         public string name
         {
             get { return layerName; }
         }
-        
+
         public Guid id
         {
             get { return Guid.Parse(layerGuid); }
@@ -45,6 +45,14 @@ namespace InputLayer.Runtime
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             using EditorGUI.PropertyScope scope = new EditorGUI.PropertyScope(position, label, property);
+
+            if (InputSystem.actions == null)
+            {
+                EditorGUI.HelpBox(position, $"{nameof(InputActionMap)}이 존재하지 않습니다.", MessageType.Error);
+                return;
+            }
+
+            
             ReadOnlyArray<InputActionMap> maps = InputSystem.actions.actionMaps;
 
             if (maps.Count == 0)
@@ -53,7 +61,7 @@ namespace InputLayer.Runtime
                 return;
             }
 
-            
+
             InputLayerName layerName = (InputLayerName)property.boxedValue;
 
             if (string.IsNullOrEmpty(layerName.layerName))
@@ -62,7 +70,7 @@ namespace InputLayer.Runtime
                 property.serializedObject.ApplyModifiedProperties();
                 return;
             }
-            
+
             string[] nameList = maps.Select(map => map.name).ToArray();
             int foundIndex = Array.IndexOf(nameList, layerName.layerName);
             foundIndex = Mathf.Max(foundIndex, 0);
