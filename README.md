@@ -65,81 +65,135 @@ using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
+    [SerializeField] private InputLayerController controller;
+
     private void Start()
     {
-        Singleton<InputManager>.Instance.PushInputLayer("UI"); // UI 레이어 추가
+        controller.PushInputLayer("UI"); // UI 레이어 추가
     }
 
     private void OnMenuClosed()
     {
-        Singleton<InputManager>.Instance.PopInputLayer(); // UI 레이어 제거 (아래 있는 레이어로 자동 복귀)
+        controller.PopInputLayer(); // UI 레이어 제거 (아래 있는 레이어로 자동 복귀)
     }
 }
 ```
 
 ## 핵심 컴포넌트
 
-### InputManager
+### InputLayerController
 
-입력 레이어 스택을 관리하는 싱글톤 매니저입니다.
+레이어 스택을 조작하고 이벤트를 구독할 수 있는 컴포넌트입니다. 
+GameObject에 추가하여 사용합니다.
 
-**일반 메서드들**
-
-```csharp
-Singleton<InputManager>.Instance.PushInputLayer("UI"); // 레이어 푸시
-
-Singleton<InputManager>.Instance.PopInputLayer(); // 레이어 팝
-
-Singleton<InputManager>.Instance.PopAllInputLayerWithoutRoot(); // 루트 제외 모든 레이어 제거
-```
-
-**정적 필드들**
+**메서드**
 
 ```csharp
-InputLayer currentLayer = InputManager.PeekInputLayer; // 현재 최상단 레이어 확인
+[SerializeField] private InputLayerController controller;
 
-InputManager.InputBlock = true; // 전역 입력 차단
+// 레이어 푸시
+controller.PushInputLayer("UI");
 
-InputManager.LayerStackBlock = true; // 레이어 스택 변경 차단
+// 레이어 팝
+controller.PopInputLayer();
+
+// 루트 제외 모든 레이어 제거
+controller.PopAllInputLayersExpectRoot();
+
+// 현재 최상단 레이어 확인
+InputLayer currentLayer = controller.peekInputLayer;
 ```
 
 **이벤트**
 
-InputLayerController 객체를 이용해서 레이어 추가 및 제거 이벤트를 등록할 수 있습니다.
-
 ```csharp
-public class SomeClass : MonoBehaviour 
+public class SomeClass : MonoBehaviour
 {
-    private InputLayerController _controller;
+    [SerializeField] private InputLayerController controller;
 
-    private void RegisterEvents()
+    private void Start()
     {
-        _controller.onPushedInputLayer += OnLayerPushed
-        _controller.onPoppedInputLayer += OnLayerPopped;
+        controller.onPushedInputLayer += OnLayerPushed;
+        controller.onPoppedInputLayer += OnLayerPopped;
+    }
+
+    private void OnLayerPushed(InputLayer layer)
+    {
+        Debug.Log($"레이어 추가됨: {layer.mapName}");
+    }
+
+    private void OnLayerPopped(InputLayer layer)
+    {
+        Debug.Log($"레이어 제거됨: {layer.mapName}");
+    }
+
+    private void OnDestroy()
+    {
+        controller.onPushedInputLayer -= OnLayerPushed;
+        controller.onPoppedInputLayer -= OnLayerPopped;
     }
 }
 ```
 
+### InputManager
+
+입력 레이어 스택을 관리하는 싱글톤 매니저입니다. 일반적으로 **InputLayerController**를 통해 간접적으로 사용하는 것을 권장합니다.
+
+**직접 접근 (고급)**
+
+```csharp
+// 현재 입력이 차단되어 있는지 확인 (읽기 전용)
+bool isBlocked = Singleton<InputManager>.Instance.inputBlock;
+
+// 레이어 스택 변경 차단 설정
+Singleton<InputManager>.Instance.layerStackBlock = true;  // 차단
+Singleton<InputManager>.Instance.layerStackBlock = false; // 허용
+
+// 입력 활성화/비활성화
+Singleton<InputManager>.Instance.EnableControls(false); // 입력 비활성화
+Singleton<InputManager>.Instance.EnableControls(true);  // 입력 활성화
+```
+
 ### InputReceiver
 
-특정 레이어의 입력을 받는 컴포넌트입니다.
+특정 레이어의 입력을 받는 컴포넌트입니다. GameObject에 추가하고 Inspector에서 레이어를 지정합니다.
+
+**설정**
 
 ```csharp
 public class PlayerController : MonoBehaviour
 {
-    public InputReceiver inputReceiver;
+    [SerializeField] private InputReceiver inputReceiver; // Inspector에서 레이어 지정 필요
+}
+```
 
-    private void Update()
+**입력 읽기 메서드**
+
+```csharp
+private void Update()
+{
+    // 버튼이 이번 프레임에 눌렸는지
+    if (inputReceiver.ReadButtonDown("Jump"))
     {
-        if (inputReceiver.ReadButtonDown("Jump"))
-        {
-            Jump();
-        }
-        
-        if (inputReceiver.ReadInput("Move", out Vector2 movement)) 
-        {
-            Move(movement);
-        }
+        Jump();
+    }
+
+    // 버튼이 현재 눌려있는지
+    if (inputReceiver.ReadButton("Fire"))
+    {
+        Shoot();
+    }
+
+    // 버튼이 이번 프레임에 떼어졌는지
+    if (inputReceiver.ReadButtonUp("Aim"))
+    {
+        StopAiming();
+    }
+
+    // 값 읽기 (Vector2, float 등)
+    if (inputReceiver.ReadInput("Move", out Vector2 movement))
+    {
+        Move(movement);
     }
 }
 ```
@@ -149,6 +203,7 @@ public class PlayerController : MonoBehaviour
 ```csharp
 private void Start()
 {
+    // 콜백 등록 - 레이어가 활성화되지 않아도 콜백은 동작합니다
     _inputReceiver.RegisterInputAction("Jump", InputCallback.Performed, OnJumpPerformed);
 }
 
@@ -159,9 +214,16 @@ private void OnJumpPerformed(InputAction.CallbackContext context)
 
 private void OnDestroy()
 {
+    // 콜백 제거 필수
     _inputReceiver.UnregisterInputAction("Jump", InputCallback.Performed);
 }
 ```
+
+**주의사항**
+
+- `ReadInput`, `ReadButton`, `ReadButtonDown`, `ReadButtonUp`은 해당 InputReceiver의 레이어가 **최상단 레이어가 아니면** 항상 false를 반환합니다
+- 콜백(`RegisterInputAction`)은 레이어 활성화 여부와 무관하게 동작합니다
+- InputReceiver는 지정된 레이어의 Input Action에만 접근 가능합니다
 
 ### InputLayerName
 
@@ -286,9 +348,13 @@ InputManager의 인스펙터에서 Debug 옵션을 활성화하면 게임 화면
 
 ### 입력 우선순위
 
-1. `Singleton<InputManager>.Instance.inputBlock`이 true면 모든 입력 차단
-2. 최상단 레이어가 아닌 InputReceiver는 입력 무시
-3. 최상단 레이어의 InputReceiver만 입력 처리
+InputReceiver의 입력 읽기 메서드(`ReadInput`, `ReadButton` 등)는 다음 우선순위에 따라 동작합니다:
+
+1. **입력 차단 확인**: `inputBlock`이 true면 모든 입력 차단
+2. **레이어 매칭 확인**: InputReceiver의 레이어가 현재 최상단 레이어(`peekInputLayer`)와 일치하지 않으면 입력 무시
+3. **입력 처리**: 최상단 레이어의 InputReceiver만 입력을 읽을 수 있음
+
+**중요**: 콜백(`RegisterInputAction`)은 이 우선순위 규칙을 따르지 않고, 해당 Input Action이 활성화되어 있으면 항상 호출됩니다.
 
 ## 라이선스
 
