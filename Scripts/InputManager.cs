@@ -17,10 +17,7 @@ namespace InputLayer.Runtime
         public event Action<InputLayer> onPushedInputLayer;
         public event Action<InputLayer> onPoppedInputLayer;
 
-
-        [SerializeField]
-        private bool _blockAction;
-
+        
         [SerializeField]
         private bool _debug;
 
