@@ -1,0 +1,15 @@
+{
+  "name": "com.stellarf0x.inputlayer",
+  "version": "1.0.0",
+  "displayName": "Input Layer",
+  "description": ".",
+  "author": {
+    "name": "Stellar-F0X"
+  },
+  "keywords": [
+    "input",
+    "input-layer",
+    "input-system",
+    "input-controller"
+  ]
+}
