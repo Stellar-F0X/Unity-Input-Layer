@@ -104,28 +104,16 @@ namespace InputLayer.Runtime
         
         public override bool Equals(object obj)
         {
-            if (obj is not InputLayer other)
-            {
-                return false;
-            }
-
-            if (this.Equals(other))
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return obj is InputLayer other && this.Equals(other);
         }
 
         
         
         public override int GetHashCode()
         {
-            return _hash;
+            return HashCode.Combine(_hash, _isRoot, _inputActionMap);
         }
-
+        
         
 
         public override string ToString()
