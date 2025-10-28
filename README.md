@@ -67,12 +67,12 @@ public class GameManager : MonoBehaviour
 {
     private void Start()
     {
-        InputManager.Instance.PushInputLayer("UI"); // UI 레이어 추가
+        Singleton<InputManager>.Instance.PushInputLayer("UI"); // UI 레이어 추가
     }
 
     private void OnMenuClosed()
     {
-        InputManager.Instance.PopInputLayer(); // UI 레이어 제거 (아래 있는 레이어로 자동 복귀)
+        Singleton<InputManager>.Instance.PopInputLayer(); // UI 레이어 제거 (아래 있는 레이어로 자동 복귀)
     }
 }
 ```
@@ -202,12 +202,12 @@ public class PauseMenu : MonoBehaviour
 {
     private void OnEnable()
     {
-        InputManager.Instance.PushInputLayer("UI"); // 메뉴가 열리면 UI 레이어 활성화
+        Singleton<InputManager>.Instance.PushInputLayer("UI"); // 메뉴가 열리면 UI 레이어 활성화
     }
 
     private void OnDisable()
     {   
-        InputManager.Instance.PopInputLayer(); // 메뉴가 닫히면 이전 레이어로 복귀
+        Singleton<InputManager>.Instancee.PopInputLayer(); // 메뉴가 닫히면 이전 레이어로 복귀
     }
 }
 ```
@@ -221,7 +221,7 @@ public class DialogueSystem : MonoBehaviour
 
     private void StartDialogue()
     {
-        InputManager.Instance.PushInputLayer("Dialogue"); // 대화 중에는 Dialogue 레이어만 활성화
+        Singleton<InputManager>.Instance.PushInputLayer("Dialogue"); // 대화 중에는 Dialogue 레이어만 활성화
         
         _dialogueInput.RegisterInputAction("Submit", InputCallback.Performed, OnDialogueAdvance);
     }
@@ -230,7 +230,7 @@ public class DialogueSystem : MonoBehaviour
     {
         _dialogueInput.UnregisterInputAction("Submit", InputCallback.Performed);
 
-        InputManager.Instance.PopInputLayer();
+        Singleton<InputManager>.Instance.PopInputLayer();
     }
 
     private void OnDialogueAdvance(InputAction.CallbackContext ctx)
@@ -293,7 +293,7 @@ InputManager의 Inspector에서 Debug 옵션을 활성화하면 게임 화면 �
 |--------|------|
 | `PushInputLayer(string)` | 레이어를 스택에 추가하고 활성화 |
 | `PopInputLayer()` | 최상단 레이어 제거 (Root 제외) |
-| `PopAllInputLayerWithoutRoot()` | Root를 제외한 모든 레이어 제거 |
+| `PopAllInputLayersExpectRoot()` | Root를 제외한 모든 레이어 제거 |
 | `EnableControls(bool)` | 현재 레이어의 입력 활성화/비활성화 |
 
 | 프로퍼티 | 설명 |
