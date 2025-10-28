@@ -106,8 +106,8 @@ InputManager.LayerStackBlock = true; // 레이어 스택 변경 차단
 
 **이벤트**
 ```csharp
-InputManager.Instance.onPushedInputLayer += OnLayerPushed;
-InputManager.Instance.onPoppedInputLayer += OnLayerPopped;
+Singleton<InputManager>.Instance.onPushedInputLayer += OnLayerPushed;
+Singleton<InputManager>.Instance.onPoppedInputLayer += OnLayerPopped;
 ```
 
 ### InputReceiver
@@ -247,12 +247,12 @@ public class InventoryUI : MonoBehaviour
 {
     private void Open()
     {
-        InputManager.Instance.PushInputLayer("Inventory"); // 플레이어 이동 입력이 자동으로 차단됨
+        Singleton<InputManager>.Instance.PushInputLayer("Inventory"); // 플레이어 이동 입력이 자동으로 차단됨
     }
 
     private void Close()
     {
-        InputManager.Instance.PopInputLayer(); // 플레이어 이동 입력 재개
+        Singleton<InputManager>.Instance.PopInputLayer(); // 플레이어 이동 입력 재개
     }
 }
 ```
@@ -285,33 +285,6 @@ InputManager의 Inspector에서 Debug 옵션을 활성화하면 게임 화면 �
 2. 최상단 레이어가 아닌 InputReceiver는 입력 무시
 3. 최상단 레이어의 InputReceiver만 입력 처리
 
-## API 레퍼런스
-
-### InputManager
-
-| 메서드 | 설명 |
-|--------|------|
-| `PushInputLayer(string)` | 레이어를 스택에 추가하고 활성화 |
-| `PopInputLayer()` | 최상단 레이어 제거 (Root 제외) |
-| `PopAllInputLayersExpectRoot()` | Root를 제외한 모든 레이어 제거 |
-| `EnableControls(bool)` | 현재 레이어의 입력 활성화/비활성화 |
-
-| 프로퍼티 | 설명 |
-|----------|------|
-| `PeekInputLayer` | 현재 최상단 레이어 |
-| `InputBlock` | 전역 입력 차단 플래그 |
-| `LayerStackBlock` | 레이어 변경 차단 플래그 |
-
-### InputReceiver
-
-| 메서드 | 설명 |
-|--------|------|
-| `ReadButton(string)` | 버튼이 눌려있는지 확인 |
-| `ReadButtonDown(string)` | 버튼이 이번 프레임에 눌렸는지 확인 |
-| `ReadButtonUp(string)` | 버튼이 이번 프레임에 떼어졌는지 확인 |
-| `ReadInput<T>(string, out T)` | 입력 값 읽기 (Vector2, float 등) |
-| `RegisterInputAction(...)` | 입력 콜백 등록 |
-| `UnregisterInputAction(...)` | 입력 콜백 해제 |
 
 ## 라이선스
 
