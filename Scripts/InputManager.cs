@@ -1,14 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.InputSystem;
 using Debug = UnityEngine.Debug;
 
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 namespace InputLayer.Runtime
 {
@@ -19,6 +16,10 @@ namespace InputLayer.Runtime
 
         public event Action<InputLayer> onPushedInputLayer;
         public event Action<InputLayer> onPoppedInputLayer;
+
+
+        [SerializeField]
+        private bool _debug;
 
         [SerializeField]
         private InputLayerName _rootLayer;
@@ -62,7 +63,7 @@ namespace InputLayer.Runtime
                 _rootLayer = new InputLayerName(map.name, map.id.ToString());
             }
 
-            this.PushInputLayer(_rootLayer);
+            this.PushInputLayer(_rootLayer, isRoot: true);
         }
 
 
@@ -83,19 +84,18 @@ namespace InputLayer.Runtime
 
 
 
-        internal InputLayer CreateInputLayer(in Guid id)
+        internal InputLayer CreateInputLayer(in Guid id, bool isRoot = false)
         {
-            Assert.IsTrue(Guid.Empty != id, $"{nameof(id)}은 비어있을 수 없습니다.");
-
+            Assert.IsTrue(Guid.Empty != id, $"{nameof(InputManager)}: {nameof(id)}은 비어있을 수 없습니다.");
             InputActionMap actionMap = _inputMapsAsset.FindActionMap(id);
             Assert.IsNotNull(actionMap, $"{nameof(InputManager)}: 액션 맵 {id}을 찾을 수 없습니다.");
 
-            return new InputLayer(actionMap);
+            return new InputLayer(actionMap, isRoot);
         }
 
 
 
-        internal bool PushInputLayer(in InputLayerName layerName)
+        internal bool PushInputLayer(in InputLayerName layerName, bool isRoot = false)
         {
             if (LayerStackBlock)
             {
@@ -104,7 +104,7 @@ namespace InputLayer.Runtime
             }
 
             Guid target = Guid.Parse(layerName.layerGuid);
-            InputLayer layer = this.CreateInputLayer(target);
+            InputLayer layer = this.CreateInputLayer(target, isRoot);
 
             _inputActionLayer.Push(layer);
 
@@ -127,11 +127,11 @@ namespace InputLayer.Runtime
             }
 
             InputActionMap map = InputSystem.actions.FindActionMap(inputActionMapName);
-            Assert.IsNotNull(map, $"{nameof(InputManager)}: 액션 맵 {inputActionMapName}을 찾을 수 없습니다.");
+            Assert.IsNotNull(map, $"{nameof(InputManager)}: {inputActionMapName}이 없습니다.");
 
-            if (PeekInputLayer.actionMapId == map.id)
+            if (_inputActionLayer.Any(layer => layer.actionMapId == map.id))
             {
-                Debug.LogWarning($"{nameof(InputManager)}: 똑같은 레이어를 연속해서 추가할 수 없습니다.");
+                Debug.LogWarning($"{nameof(InputManager)}: 똑같은 레이어를 추가할 수 없습니다.");
                 return false;
             }
 
@@ -154,11 +154,50 @@ namespace InputLayer.Runtime
                 return;
             }
 
-            _inputActionLayer.Pop();
+            bool success = this.TryPopInputLayer();
+            
+            if (_debug)
+            {
+                Debug.Log($"{nameof(InputManager)}: {(success ? "변경에 성공했습니다." : "변경에 실패했습니다.")}");
+            }
+        }
+
+
+
+        public void PopAllInputLayerWithoutRoot()
+        {
+            if (LayerStackBlock)
+            {
+                Debug.LogWarning($"{nameof(InputManager)}: 레이어 변경이 막혀있습니다.");
+            }
+            else
+            {
+                while (this.TryPopInputLayer()) { }
+            }
+        }
+
+
+
+        private bool TryPopInputLayer()
+        {
+            if (PeekInputLayer.isRoot)
+            {
+                return false;
+            }
+            
+            if (_inputActionLayer.TryPop(out _) == false)
+            {
+                return false;
+            }
 
             if (this.SwitchActionMap(PeekInputLayer.actionMapId))
             {
                 onPoppedInputLayer?.Invoke(PeekInputLayer);
+                return true;
+            }
+            else
+            {
+                return false;
             }
         }
 
@@ -167,66 +206,54 @@ namespace InputLayer.Runtime
         private bool SwitchActionMap(in Guid id)
         {
             _currentInputMap?.Disable();
-
             _currentInputMap = _inputMapsAsset.FindActionMap(id);
-            Assert.IsNotNull(_currentInputMap, "입력 액션 맵이 없습니다.");
+
+            Assert.IsNotNull(_currentInputMap, $"{nameof(InputManager)}: 입력 액션 맵이 없습니다.");
+
             _currentInputMap.Enable();
+
 
             if (PeekInputLayer.actionMapId == id)
             {
                 return true;
             }
-
-            Debug.LogError("입력 맵 변경에 실패했습니다.");
-            return false;
-        }
-    }
-
-
-
-#if UNITY_EDITOR
-    [CustomEditor(typeof(InputManager))]
-    public class InputManagerDrawer : Editor
-    {
-        private string[] _options = new string[1];
-
-
-        private void OnDisable()
-        {
-            _options[0] = null;
-            _options = null;
-        }
-
-
-        public override void OnInspectorGUI()
-        {
-            serializedObject.Update();
-
-            using (new EditorGUI.DisabledScope(true))
+            else
             {
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("m_Script"));
+                Debug.LogError($"{nameof(InputManager)}: 입력 맵 변경에 실패했습니다.");
+                return false;
+            }
+        }
+
+
+
+        private void OnGUI()
+        {
+            if (_debug == false)
+            {
+                return;
             }
 
-            using (new EditorGUI.DisabledScope(Application.isPlaying))
+            const float textHeight = 24f;
+
+            GUI.Box(new Rect(2f, 2f, 100f, _inputActionLayer.Count * textHeight + 24), string.Empty);
+            GUI.Label(new Rect(4f, 2f, 100f, 30f), $"Input Layers");
+            Rect textRect = new Rect(4f, 24f, 150f, textHeight);
+
+            foreach (InputLayer inputLayer in _inputActionLayer)
             {
-                EditorGUI.BeginChangeCheck();
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("_rootLayer"));
-
-                if (EditorGUI.EndChangeCheck())
+                if (inputLayer.isRoot)
                 {
-                    serializedObject.ApplyModifiedProperties();
+                    GUI.color = Color.yellow;
+                }
+                else if (inputLayer == PeekInputLayer)
+                {
+                    GUI.color = Color.green;
                 }
 
-                if (Application.isPlaying == false)
-                {
-                    return;
-                }
-
-                _options[0] = InputManager.PeekInputLayer.mapName;
-
-                EditorGUILayout.Popup("Current Layer", 0, _options);
+                GUI.Label(textRect, inputLayer.mapName);
+                textRect.y += 24f;
+                GUI.color = Color.white;
             }
         }
     }
-#endif
 }
