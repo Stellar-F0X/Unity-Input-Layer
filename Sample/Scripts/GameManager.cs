@@ -33,7 +33,7 @@ namespace InputLayer.Sample
             if (Input.GetKeyDown(KeyCode.Alpha9))
             {
                 Debug.Log($"입력 레이어를 초기화했습니다."); 
-                Singleton<InputManager>.Instance.PopAllInputLayerWithoutRoot();
+                Singleton<InputManager>.Instance.PopAllInputLayersExpectRoot();
             }
         }
     }

@@ -81,7 +81,9 @@ namespace InputLayer.Runtime
         
         public bool ReadInput<T>(in string actionName, out T value) where T : struct
         {
-            if (InputManager.InputBlock || InputManager.PeekInputLayer == _focusedInputLayer)
+            InputManager manager = Singleton<InputManager>.Instance;
+            
+            if (manager.inputBlock || manager.peekInputLayer == _focusedInputLayer)
             {
                 value = default;
                 return false;
@@ -94,11 +96,12 @@ namespace InputLayer.Runtime
         
         public bool ReadButton(in string actionName)
         {
-            if (InputManager.InputBlock || InputManager.PeekInputLayer == _focusedInputLayer)
+            InputManager manager = Singleton<InputManager>.Instance;
+            
+            if (manager.inputBlock || manager.peekInputLayer == _focusedInputLayer)
             {
                 return false;
             }
-
 
             return _focusedInputLayer.GetAction(actionName)?.IsInProgress() ?? false;
         }
@@ -106,7 +109,9 @@ namespace InputLayer.Runtime
         
         public bool ReadButtonUp(string actionName)
         {
-            if (InputManager.InputBlock || InputManager.PeekInputLayer == _focusedInputLayer)
+            InputManager manager = Singleton<InputManager>.Instance;
+            
+            if (manager.inputBlock || manager.peekInputLayer == _focusedInputLayer)
             {
                 return false;
             }
@@ -117,11 +122,12 @@ namespace InputLayer.Runtime
 
         public bool ReadButtonDown(string actionName)
         {
-            if (InputManager.InputBlock || InputManager.PeekInputLayer == _focusedInputLayer)
+            InputManager manager = Singleton<InputManager>.Instance;
+            
+            if (manager.inputBlock || manager.peekInputLayer == _focusedInputLayer)
             {
                 return false;
             }
-
 
             return _focusedInputLayer.GetAction(actionName)?.WasPressedThisFrame() ?? false;
         }

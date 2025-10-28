@@ -19,6 +19,9 @@ namespace InputLayer.Runtime
 
 
         [SerializeField]
+        private bool _blockAction;
+
+        [SerializeField]
         private bool _debug;
 
         [SerializeField]
@@ -29,33 +32,29 @@ namespace InputLayer.Runtime
 
 
 
-        public static InputLayer PeekInputLayer
+        public InputLayer peekInputLayer
         {
             get { return _instance._inputActionLayer.Peek(); }
         }
 
-        public static bool InputBlock
+        public bool layerStackBlock
         {
             get;
             set;
         }
 
-        public static bool LayerStackBlock
+        public bool inputBlock
         {
-            get;
-            set;
+            get { return _currentInputMap.enabled; }
         }
-
 
 
         protected override void OnMonoAwake()
         {
             this._inputMapsAsset = InputSystem.actions;
 
-            Assert.IsTrue(_inputMapsAsset.actionMaps.Count > 0,
-                          "No Action Maps defined in InputSystem.actions. " +
-                          "Root input layer initialization failed."
-            );
+            bool errorFlag = _inputMapsAsset?.actionMaps.Count > 0;
+            Assert.IsTrue(errorFlag, "No Action Maps defined in actions");
 
             if (string.IsNullOrEmpty(_rootLayer.layerGuid))
             {
@@ -70,8 +69,6 @@ namespace InputLayer.Runtime
 
         public void EnableControls(bool enable)
         {
-            InputBlock = !enable;
-
             if (enable)
             {
                 _currentInputMap.Enable();
@@ -97,7 +94,7 @@ namespace InputLayer.Runtime
 
         internal bool PushInputLayer(in InputLayerName layerName, bool isRoot = false)
         {
-            if (LayerStackBlock)
+            if (layerStackBlock)
             {
                 Debug.LogWarning($"{nameof(InputManager)}: 레이어 변경이 막혀있습니다.");
                 return false;
@@ -120,7 +117,7 @@ namespace InputLayer.Runtime
 
         public bool PushInputLayer(in string inputActionMapName)
         {
-            if (LayerStackBlock)
+            if (layerStackBlock)
             {
                 Debug.LogWarning($"{nameof(InputManager)}: 레이어 변경이 막혀있습니다.");
                 return false;
@@ -142,20 +139,20 @@ namespace InputLayer.Runtime
 
         public void PopInputLayer()
         {
-            if (LayerStackBlock)
+            if (layerStackBlock)
             {
                 Debug.LogWarning($"{nameof(InputManager)}: 레이어 변경이 막혀있습니다.");
                 return;
             }
 
-            if (PeekInputLayer.isRoot)
+            if (peekInputLayer.isRoot)
             {
                 Debug.LogWarning($"{nameof(InputManager)}: 최상위 입력 레이어는 제거할 수 없습니다.");
                 return;
             }
 
             bool success = this.TryPopInputLayer();
-            
+
             if (_debug)
             {
                 Debug.Log($"{nameof(InputManager)}: {(success ? "변경에 성공했습니다." : "변경에 실패했습니다.")}");
@@ -164,9 +161,9 @@ namespace InputLayer.Runtime
 
 
 
-        public void PopAllInputLayerWithoutRoot()
+        public void PopAllInputLayersExpectRoot()
         {
-            if (LayerStackBlock)
+            if (layerStackBlock)
             {
                 Debug.LogWarning($"{nameof(InputManager)}: 레이어 변경이 막혀있습니다.");
             }
@@ -180,19 +177,19 @@ namespace InputLayer.Runtime
 
         private bool TryPopInputLayer()
         {
-            if (PeekInputLayer.isRoot)
+            if (peekInputLayer.isRoot)
             {
                 return false;
             }
-            
+
             if (_inputActionLayer.TryPop(out _) == false)
             {
                 return false;
             }
 
-            if (this.SwitchActionMap(PeekInputLayer.actionMapId))
+            if (this.SwitchActionMap(peekInputLayer.actionMapId))
             {
-                onPoppedInputLayer?.Invoke(PeekInputLayer);
+                onPoppedInputLayer?.Invoke(peekInputLayer);
                 return true;
             }
             else
@@ -206,14 +203,13 @@ namespace InputLayer.Runtime
         private bool SwitchActionMap(in Guid id)
         {
             _currentInputMap?.Disable();
+            
             _currentInputMap = _inputMapsAsset.FindActionMap(id);
-
             Assert.IsNotNull(_currentInputMap, $"{nameof(InputManager)}: 입력 액션 맵이 없습니다.");
 
             _currentInputMap.Enable();
 
-
-            if (PeekInputLayer.actionMapId == id)
+            if (peekInputLayer.actionMapId == id)
             {
                 return true;
             }
@@ -245,7 +241,7 @@ namespace InputLayer.Runtime
                 {
                     GUI.color = Color.yellow;
                 }
-                else if (inputLayer == PeekInputLayer)
+                else if (inputLayer == peekInputLayer)
                 {
                     GUI.color = Color.green;
                 }
