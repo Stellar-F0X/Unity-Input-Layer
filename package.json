@@ -6,6 +6,9 @@
   "author": {
     "name": "Stellar-F0X"
   },
+  "dependencies": {
+    "com.unity.inputsystem" : "1.11.1"
+  },
   "keywords": [
     "input",
     "input-layer",
