@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
+using NUnit.Framework.Internal.Commands;
 using UnityEngine;
+using UnityEngine.Assertions;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
 
@@ -33,7 +35,32 @@ namespace InputLayer.Runtime
 
         public Guid id
         {
-            get { return Guid.Parse(layerGuid); }
+            get { return this.GetInputActionId(); }
+        }
+
+
+        private Guid GetInputActionId()
+        {
+            Guid result = Guid.Empty;
+
+            if (string.IsNullOrEmpty(layerGuid) == false)
+            {
+                result = Guid.Parse(layerGuid);
+            }
+            else if (string.IsNullOrEmpty(layerName) == false)
+            {
+                InputActionMap map = InputSystem.actions.FindActionMap(layerName);
+                Assert.IsNotNull(map, $"{nameof(InputLayerName)}: 레이어가 없습니다.");
+                layerGuid = map.id.ToString();
+                result = map.id;
+            }
+
+            if (result != Guid.Empty)
+            {
+                return result;
+            }
+
+            throw new NullReferenceException($"{nameof(InputLayerName)}: 액션 맵을 찾을 수 없습니다.");
         }
     }
 
@@ -52,7 +79,7 @@ namespace InputLayer.Runtime
                 return;
             }
 
-            
+
             ReadOnlyArray<InputActionMap> maps = InputSystem.actions.actionMaps;
 
             if (maps.Count == 0)
