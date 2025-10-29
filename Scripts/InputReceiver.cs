@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using Polygonia;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -163,6 +165,28 @@ namespace InputLayer.Runtime
             }
 
             return _focusedInputLayer.GetAction(actionName)?.WasPressedThisFrame() ?? false;
+        }
+
+
+        public IEnumerable AsyncReadButton(string actionName)
+        {
+            InputManager manager = Singleton<InputManager>.Instance;
+
+            if (manager.inputBlock || manager.peekInputLayer != _focusedInputLayer)
+            {
+                yield break;
+            }
+
+            InputAction action = _focusedInputLayer.GetAction(actionName);
+
+            if (action is null)
+            {
+                yield break;
+            }
+            else
+            {
+                yield return new WaitForCompletion(action.IsPressed);
+            }
         }
     }
 }
