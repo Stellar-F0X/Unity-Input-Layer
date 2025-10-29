@@ -13,24 +13,49 @@ namespace InputLayer.Runtime
 
         [SerializeField]
         private InputLayerName _activeLayer;
-
-        private InputLayer _focusedInputLayer;
-
+        private InputLayer _cachedInputLayer;
+        
 
         public string layerName
         {
             get { return _activeLayer.name; }
         }
 
-        public int layerHash
+        public bool active
         {
-            get { return _focusedInputLayer.hash; }
+            get { return _activeLayer.id == Singleton<InputManager>.Instance.peekInputLayer.actionMapId; }
         }
+
 
 
         private void Awake()
         {
-            _focusedInputLayer = Singleton<InputManager>.Instance.CreateInputLayer(_activeLayer.id);
+            this.CheckAndCacheInputLayer();
+        }
+
+
+
+        private bool CheckAndCacheInputLayer()
+        {
+            InputManager manager = Singleton<InputManager>.Instance;
+
+            if (_cachedInputLayer.actionMapId != Guid.Empty)
+            {
+                return _cachedInputLayer == manager.peekInputLayer;
+            }
+
+            if (_activeLayer.id != manager.peekInputLayer.actionMapId)
+            {
+                return false;
+            }
+
+            if (_activeLayer.name != manager.peekInputLayer.mapName)
+            {
+                return false;
+            }
+
+            _cachedInputLayer = manager.peekInputLayer;
+            return true;
         }
 
 
@@ -45,14 +70,14 @@ namespace InputLayer.Runtime
                 {
                     continue;
                 }
-                
-                InputAction action = _focusedInputLayer.GetAction(paths[0]);
+
+                InputAction action = InputSystem.actions.FindActionMap(_activeLayer.id).FindAction(paths[0]);
 
                 if (action is null)
                 {
                     continue;
                 }
-                
+
                 action.started -= pair.Value;
                 action.canceled -= pair.Value;
                 action.performed -= pair.Value;
@@ -65,7 +90,7 @@ namespace InputLayer.Runtime
 
         public virtual void RegisterInputAction(string actionName, InputCallback callbackType, Action<InputAction.CallbackContext> callback)
         {
-            InputAction action = _focusedInputLayer.GetAction(actionName);
+            InputAction action = InputSystem.actions.FindActionMap(_activeLayer.id).FindAction(actionName);
 
             if ((callbackType & InputCallback.Started) > 0)
             {
@@ -92,7 +117,7 @@ namespace InputLayer.Runtime
 
         public virtual void UnregisterInputAction(string actionName, InputCallback callbackType)
         {
-            InputAction action = _focusedInputLayer.GetAction(actionName);
+            InputAction action = InputSystem.actions.FindActionMap(_activeLayer.id).FindAction(actionName);
 
             if ((callbackType & InputCallback.Started) > 0)
             {
@@ -118,13 +143,13 @@ namespace InputLayer.Runtime
         {
             InputManager manager = Singleton<InputManager>.Instance;
 
-            if (manager.inputBlock || manager.peekInputLayer != _focusedInputLayer)
+            if (manager.inputBlock || this.CheckAndCacheInputLayer() == false)
             {
                 value = default;
                 return false;
             }
 
-            value = _focusedInputLayer.GetAction(actionName)?.ReadValue<T>() ?? default;
+            value = _cachedInputLayer.GetAction(actionName)?.ReadValue<T>() ?? default;
             return true;
         }
 
@@ -133,12 +158,12 @@ namespace InputLayer.Runtime
         {
             InputManager manager = Singleton<InputManager>.Instance;
 
-            if (manager.inputBlock || manager.peekInputLayer != _focusedInputLayer)
+            if (manager.inputBlock || this.CheckAndCacheInputLayer() == false)
             {
                 return false;
             }
 
-            return _focusedInputLayer.GetAction(actionName)?.IsInProgress() ?? false;
+            return _cachedInputLayer.GetAction(actionName)?.IsInProgress() ?? false;
         }
 
 
@@ -146,12 +171,12 @@ namespace InputLayer.Runtime
         {
             InputManager manager = Singleton<InputManager>.Instance;
 
-            if (manager.inputBlock || manager.peekInputLayer != _focusedInputLayer)
+            if (manager.inputBlock || this.CheckAndCacheInputLayer() == false)
             {
                 return false;
             }
 
-            return _focusedInputLayer.GetAction(actionName)?.WasReleasedThisFrame() ?? false;
+            return _cachedInputLayer.GetAction(actionName)?.WasReleasedThisFrame() ?? false;
         }
 
 
@@ -159,12 +184,12 @@ namespace InputLayer.Runtime
         {
             InputManager manager = Singleton<InputManager>.Instance;
 
-            if (manager.inputBlock || manager.peekInputLayer != _focusedInputLayer)
+            if (manager.inputBlock || this.CheckAndCacheInputLayer() == false)
             {
                 return false;
             }
 
-            return _focusedInputLayer.GetAction(actionName)?.WasPressedThisFrame() ?? false;
+            return _cachedInputLayer.GetAction(actionName)?.WasPressedThisFrame() ?? false;
         }
 
 
@@ -172,12 +197,12 @@ namespace InputLayer.Runtime
         {
             InputManager manager = Singleton<InputManager>.Instance;
 
-            if (manager.inputBlock || manager.peekInputLayer != _focusedInputLayer)
+            if (manager.inputBlock || this.CheckAndCacheInputLayer() == false)
             {
                 yield break;
             }
 
-            InputAction action = _focusedInputLayer.GetAction(actionName);
+            InputAction action = _cachedInputLayer.GetAction(actionName);
 
             if (action is null)
             {

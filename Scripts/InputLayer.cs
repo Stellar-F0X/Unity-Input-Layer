@@ -39,7 +39,7 @@ namespace InputLayer.Runtime
         
         internal Guid actionMapId
         {
-            get { return _inputActionMap.id; }
+            get { return _inputActionMap?.id ?? Guid.Empty; }
         }
 
 

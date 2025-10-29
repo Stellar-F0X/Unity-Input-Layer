@@ -31,7 +31,7 @@ namespace InputLayer.Runtime
 
         public InputLayer peekInputLayer
         {
-            get { return _instance._inputActionLayer?.Peek() ?? default; }
+            get { return _inputActionLayer.Count > 0 ? _inputActionLayer.Peek() : default; }
         }
 
         public bool inputBlock
@@ -52,14 +52,12 @@ namespace InputLayer.Runtime
             this._inputMapsAsset = InputSystem.actions;
             bool errorFlag = _inputMapsAsset?.actionMaps.Count > 0;
             Assert.IsTrue(errorFlag, "No Action Maps defined in actions");
-
             
-            if (string.IsNullOrEmpty(_rootLayer.layerGuid))
+            if (string.IsNullOrEmpty(_rootLayer.name))
             {
                 InputActionMap map = _inputMapsAsset.actionMaps[0];
-                _rootLayer = new InputLayerName(map.name, map.id.ToString());
+                _rootLayer = new InputLayerName(map);
             }
-
             
             this.PushInputLayer(_rootLayer, isRoot: true);
         }
@@ -80,7 +78,7 @@ namespace InputLayer.Runtime
 
 
 
-        internal InputLayer CreateInputLayer(in Guid id, bool isRoot = false)
+        private InputLayer CreateInputLayer(in Guid id, bool isRoot = false)
         {
             InputActionMap actionMap = _inputMapsAsset.FindActionMap(id);
             
@@ -103,11 +101,10 @@ namespace InputLayer.Runtime
                 Debug.LogWarning($"{nameof(InputManager)}: 레이어 변경이 막혀있습니다.");
                 return false;
             }
+            
+            this.SwitchActionMap(layerName.id);
 
-            Guid target = Guid.Parse(layerName.layerGuid);
-            this.SwitchActionMap(target);
-
-            InputLayer layer = this.CreateInputLayer(target, isRoot);
+            InputLayer layer = this.CreateInputLayer(layerName.id, isRoot);
             _inputActionLayer.Push(layer);
             onPushedInputLayer?.Invoke(layer);
             return true;
@@ -136,7 +133,7 @@ namespace InputLayer.Runtime
                 return false;
             }
 
-            return this.PushInputLayer(new InputLayerName(map.name, map.id.ToString()));
+            return this.PushInputLayer(new InputLayerName(map));
         }
 
 
@@ -151,7 +148,7 @@ namespace InputLayer.Runtime
 
             if (this.peekInputLayer.isRoot)
             {
-                Debug.LogWarning($"{nameof(InputManager)}: 최상위 입력 레이어는 제거할 수 없습니다.");
+                Debug.LogWarning($"{nameof(InputManager)}: 루트 레이어는 제거할 수 없습니다.");
                 return;
             }
 

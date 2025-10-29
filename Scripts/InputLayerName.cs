@@ -15,52 +15,24 @@ namespace InputLayer.Runtime
     [Serializable]
     public struct InputLayerName
     {
-        public InputLayerName(string layerName, string layerGuid)
+        public InputLayerName(InputActionMap map)
         {
-            this.layerName = layerName;
-            this.layerGuid = layerGuid;
+            _reference = map;
         }
 
-        [SerializeField]
-        internal string layerName;
 
-        [SerializeField]
-        internal string layerGuid;
+        [SerializeField, HideInInspector]
+        private InputActionMap _reference;
 
 
         public string name
         {
-            get { return layerName; }
+            get { return string.IsNullOrEmpty(_reference?.name) ? string.Empty : _reference.name; }
         }
 
         public Guid id
         {
-            get { return this.GetInputActionId(); }
-        }
-
-
-        private Guid GetInputActionId()
-        {
-            Guid result = Guid.Empty;
-
-            if (string.IsNullOrEmpty(layerGuid) == false)
-            {
-                result = Guid.Parse(layerGuid);
-            }
-            else if (string.IsNullOrEmpty(layerName) == false)
-            {
-                InputActionMap map = InputSystem.actions.FindActionMap(layerName);
-                Assert.IsNotNull(map, $"{nameof(InputLayerName)}: 레이어가 없습니다.");
-                layerGuid = map.id.ToString();
-                result = map.id;
-            }
-
-            if (result != Guid.Empty)
-            {
-                return result;
-            }
-
-            throw new NullReferenceException($"{nameof(InputLayerName)}: 액션 맵을 찾을 수 없습니다.");
+            get { return _reference.id; }
         }
     }
 
@@ -91,15 +63,15 @@ namespace InputLayer.Runtime
 
             InputLayerName layerName = (InputLayerName)property.boxedValue;
 
-            if (string.IsNullOrEmpty(layerName.layerName))
+            if (string.IsNullOrEmpty(layerName.name))
             {
-                property.boxedValue = new InputLayerName(maps[0].name, maps[0].id.ToString());
+                property.boxedValue = new InputLayerName(maps[0]);
                 property.serializedObject.ApplyModifiedProperties();
                 return;
             }
 
             string[] nameList = maps.Select(map => map.name).ToArray();
-            int foundIndex = Array.IndexOf(nameList, layerName.layerName);
+            int foundIndex = Array.IndexOf(nameList, layerName.name);
             foundIndex = Mathf.Max(foundIndex, 0);
 
             EditorGUI.BeginChangeCheck();
@@ -107,7 +79,7 @@ namespace InputLayer.Runtime
 
             if (EditorGUI.EndChangeCheck())
             {
-                property.boxedValue = new InputLayerName(maps[foundIndex].name, maps[foundIndex].id.ToString());
+                property.boxedValue = new InputLayerName(maps[foundIndex]);
                 property.serializedObject.ApplyModifiedProperties();
             }
         }
