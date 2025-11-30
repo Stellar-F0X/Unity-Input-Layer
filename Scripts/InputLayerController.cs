@@ -25,8 +25,21 @@ namespace InputLayer.Runtime
         }
 
 
+
+        public void PushAndPopInputLayer(string inputActionMapName)
+        {
+            this.PopInputLayer();
+            this.PushInputLayer(inputActionMapName);
+        }
+
         
-        public bool PushInputLayer(in string inputActionMapName)
+        public void PushInputLayer(string inputActionMapName)
+        {
+            Singleton<InputManager>.Instance.PushInputLayer(inputActionMapName);
+        }
+
+
+        public bool TryPushInputLayer(string inputActionMapName)
         {
             return Singleton<InputManager>.Instance.PushInputLayer(inputActionMapName);
         }
