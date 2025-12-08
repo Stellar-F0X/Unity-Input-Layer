@@ -13,8 +13,9 @@ namespace InputLayer.Runtime
 
         [SerializeField]
         private InputLayerName _activeLayer;
+
         private InputLayer _cachedInputLayer;
-        
+
 
         public string layerName
         {
@@ -193,7 +194,7 @@ namespace InputLayer.Runtime
         }
 
 
-        public IEnumerable AsyncReadButton(string actionName)
+        public IEnumerator AsyncReadButton(string actionName)
         {
             InputManager manager = Singleton<InputManager>.Instance;
 
@@ -211,6 +212,50 @@ namespace InputLayer.Runtime
             else
             {
                 yield return new WaitForCompletion(action.IsPressed);
+            }
+        }
+
+
+        public IEnumerator AsyncReadButtonDown(string actionName)
+        {
+            InputManager manager = Singleton<InputManager>.Instance;
+
+            if (manager.inputBlock || this.CheckAndCacheInputLayer() == false)
+            {
+                yield break;
+            }
+
+            InputAction action = _cachedInputLayer.GetAction(actionName);
+
+            if (action is null)
+            {
+                yield break;
+            }
+            else
+            {
+                yield return new WaitForCompletion(action.WasPressedThisFrame);
+            }
+        }
+        
+        
+        public IEnumerator AsyncReadButtonUp(string actionName)
+        {
+            InputManager manager = Singleton<InputManager>.Instance;
+
+            if (manager.inputBlock || this.CheckAndCacheInputLayer() == false)
+            {
+                yield break;
+            }
+
+            InputAction action = _cachedInputLayer.GetAction(actionName);
+
+            if (action is null)
+            {
+                yield break;
+            }
+            else
+            {
+                yield return new WaitForCompletion(action.WasReleasedThisFrame);
             }
         }
     }
