@@ -56,9 +56,9 @@ namespace InputLayer.Runtime
 
             protected void Awake()
             {
-                if (_singleInstance != null && _singleInstance != this)
+                if (_singleInstance != null)
                 {
-                    Object.Destroy(this);
+                    Object.Destroy(this.gameObject);
                     return;
                 }
 
@@ -68,6 +68,7 @@ namespace InputLayer.Runtime
                 Object.DontDestroyOnLoad(this.gameObject);
                 this.OnMonoAwake();
             }
+            
 
             protected void OnDestroy()
             {
@@ -76,6 +77,7 @@ namespace InputLayer.Runtime
 
                 _singleInstance = null;
             }
+            
 
             protected void OnApplicationQuit()
             {
