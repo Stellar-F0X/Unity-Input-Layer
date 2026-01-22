@@ -1,9 +1,9 @@
 using System;
 
-namespace InputLayer.Runtime
+namespace LayeredInputSystem.Runtime
 {
     [Flags]
-    public enum InputCallback : byte
+    public enum InputCallbackFlags : byte
     {
         None = 0,
         Started = 1 << 0,

@@ -1,7 +1,8 @@
 {
-    "name": "InputLayer.Runtime",
-    "rootNamespace": "InputLayer.Runtime",
+    "name": "LayeredInputSystem.Sample",
+    "rootNamespace": "LayeredInputSystem.Sample",
     "references": [
+        "GUID:d2bd5b456aea64d499e43214a94a5fa6",
         "GUID:75469ad4d38634e559750d17036d5f7c"
     ],
     "includePlatforms": [],

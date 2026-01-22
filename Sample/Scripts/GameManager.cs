@@ -1,36 +1,41 @@
-using InputLayer.Runtime;
+using LayeredInputSystem.Runtime;
 using UnityEngine;
 
-namespace InputLayer.Sample
+namespace LayeredInputSystem.Sample
 {
-    internal class GameManager : Singleton<GameManager>.MonoSingletonable
+    internal class GameManager : MonoBehaviour
     {
-        public InputLayerName playerLayer;
-        public InputLayerName uiLayer;
-        
-        public InputLayerController inputLayerController;
+        public InputLayer playerLayer;
+        public InputLayer uiLayer;
+        public InputLayerSwitcher inputLayerSwitcher;
 
 
         private void Update()
         {
+	        this.InputKey();
+        }
+
+
+        private void InputKey()
+        {
             if (Input.GetKeyDown(KeyCode.Alpha1))
             {
-                inputLayerController.PushInputLayer(playerLayer.name);
+                inputLayerSwitcher.PushInputLayer(playerLayer);
             }
 
             if (Input.GetKeyDown(KeyCode.Alpha2))
             {
-                inputLayerController.PushInputLayer(uiLayer.name);
+                inputLayerSwitcher.PushInputLayer(uiLayer);
             }
 
             if (Input.GetKeyDown(KeyCode.Alpha0))
             {
-                inputLayerController.PopInputLayer();
+                inputLayerSwitcher.PopInputLayer();
             }
         
             if (Input.GetKeyDown(KeyCode.Alpha9))
             {
-                inputLayerController.PopAllInputLayersExpectRoot();
+                inputLayerSwitcher.PopAllInputLayersExpectRoot();
             }
         }
     }

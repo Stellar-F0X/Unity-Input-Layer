@@ -1,21 +1,46 @@
 using System;
 using UnityEngine;
 
-namespace Polygonia
+namespace LayeredInputSystem.Runtime
 {
-    public class WaitForCompletion : CustomYieldInstruction
-    {
-        public WaitForCompletion(Func<bool> condition)
-        {
-            this._condition = condition;
-        }
+	internal class WaitForCompletion : CustomYieldInstruction
+	{
+		public WaitForCompletion(Func<bool> condition)
+		{
+			this._condition = condition;
+		}
 
-        private readonly Func<bool> _condition;
-        
-        
-        public override bool keepWaiting
-        {
-            get { return _condition != null && _condition.Invoke() == false; }
-        }
-    }
+		private Func<bool> _condition;
+		private bool _completed;
+
+
+		public override bool keepWaiting
+		{
+			get { return this.IsNotCompleted(); }
+		}
+		
+		public bool isCompleted
+		{
+			get { return _completed; }
+		}
+
+
+		public void ResetCondition(Func<bool> condition)
+		{
+			_condition = condition;
+			_completed = false;
+		}
+
+		
+		private bool IsNotCompleted()
+		{
+			if(_condition != null && _condition.Invoke() == false)
+			{
+				return true;
+			}
+
+			_completed = true;
+			return false;
+		}
+	}
 }

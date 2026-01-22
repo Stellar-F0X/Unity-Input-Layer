@@ -1,7 +1,7 @@
-using InputLayer.Runtime;
+using LayeredInputSystem.Runtime;
 using UnityEngine;
 
-namespace InputLayer.Sample
+namespace LayeredInputSystem.Sample
 {
     internal class PlayerController : MonoBehaviour
     {
@@ -14,8 +14,7 @@ namespace InputLayer.Sample
         private void Start()
         {
             _inputReceiver = GetComponent<InputReceiver>();
-
-            _inputReceiver.RegisterInputAction("Move", InputCallback.All, context => _inputDirection = context.ReadValue<Vector2>());
+            _inputReceiver.RegisterInputAction("Move", InputCallbackFlags.All, context => _inputDirection = context.ReadValue<Vector2>());
         }
 
 
