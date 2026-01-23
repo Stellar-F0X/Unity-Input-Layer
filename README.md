@@ -135,25 +135,6 @@ public class SomeClass : MonoBehaviour
 }
 ```
 
-### InputManager
-
-입력 레이어 스택을 관리하는 싱글톤 매니저입니다. 일반적으로 **InputLayerController**를 통해 간접적으로 사용하는 것을 권장합니다.
-
-**직접 접근 (고급)**
-
-```csharp
-// 현재 입력이 차단되어 있는지 확인 (읽기 전용)
-bool isBlocked = Singleton<InputManager>.Instance.inputBlock;
-
-// 레이어 스택 변경 차단 설정
-Singleton<InputManager>.Instance.layerStackBlock = true;  // 차단
-Singleton<InputManager>.Instance.layerStackBlock = false; // 허용
-
-// 입력 활성화/비활성화
-Singleton<InputManager>.Instance.EnableControls(false); // 입력 비활성화
-Singleton<InputManager>.Instance.EnableControls(true);  // 입력 활성화
-```
-
 ### InputReceiver
 
 특정 레이어의 입력을 받는 컴포넌트입니다. GameObject에 추가하고 Inspector에서 레이어를 지정합니다.
@@ -335,6 +316,11 @@ InputManager의 인스펙터에서 Debug 옵션을 활성화하면 게임 화면
 ## 아키텍처
 
 ### 레이어 스택 구조
+
+스택의 최상위에 위치한 입력 레이어만 입력이 활성화됩니다. 
+
+
+루트 입력 레이어는 제거하거나 실행 도중에 변경이 불가능합니다. 
 
 ```
 ┌─────────────────┐
